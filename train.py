@@ -23,7 +23,7 @@ class IterMeter(object):
 def train(model, device, train_loader, criterion, optimizer, scheduler, epoch, iter_meter):
     model.train()
     data_len = len(train_loader.dataset)
-    running_train_loss = 0
+    train_loss = 0
     for batch_idx, _data in enumerate(train_loader):
         spectrograms, labels, input_lengths, label_lengths = _data
         spectrograms, labels = spectrograms.to(device), labels.to(device)
@@ -36,22 +36,16 @@ def train(model, device, train_loader, criterion, optimizer, scheduler, epoch, i
 
         loss = criterion(output, labels, input_lengths, label_lengths)
         loss.backward()
-        running_train_loss += loss.item() * spectrograms.shape[0]  # this doesn't match valid()
+        train_loss += loss.item() / len(train_loader)  # should be length of the dataset
 
         optimizer.step()
         scheduler.step()
         iter_meter.step()
 
-        if batch_idx % 100 == 0 or batch_idx == data_len:
-            print(f'Train Epoch: {epoch} [{batch_idx * len(spectrograms)}/{data_len} '
-                  f'({100. * batch_idx / len(train_loader)}%)]\t'
-                  f'Loss: {loss.item()}')
-
-    running_train_loss /= len(train_loader)  # should be length of the dataset
-    print(f'Running train loss = {running_train_loss}')
+    print(f'Epoch {epoch}/{data_len}: train loss = {train_loss}')
 
 
-def test(model, device, test_loader, criterion, epoch, iter_meter):
+def test(model, device, test_loader, criterion):
     model.eval()
     test_loss = 0
     test_cer, test_wer = [], []
@@ -78,7 +72,7 @@ def test(model, device, test_loader, criterion, epoch, iter_meter):
     print(f'Test set: Average loss: {test_loss}, Average CER: {avg_cer} Average WER: {avg_wer}\n')
 
 
-def main(train_loader, test_loader, hparams, model):
+def main(train_loader, test_loader, hparams, model, test_every=5):
 
     torch.manual_seed(7)
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -95,4 +89,5 @@ def main(train_loader, test_loader, hparams, model):
     iter_meter = IterMeter()
     for epoch in range(1, hparams['epochs'] + 1):
         train(model, device, train_loader, criterion, optimizer, scheduler, epoch, iter_meter)
-        test(model, device, test_loader, criterion, epoch, iter_meter)
+        if epoch % test_every == 0:
+            test(model, device, test_loader, criterion)

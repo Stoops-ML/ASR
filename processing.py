@@ -2,45 +2,50 @@ import torch
 import torch.nn as nn
 
 
+char_map_str = (
+            "'",  # 0
+            "<SPACE>",  # 1
+            "a",
+            "b",
+            "c",
+            "d",
+            "e",
+            "f",
+            "g",
+            "h",
+            "i",
+            "j",
+            "k",
+            "l",
+            "m",
+            "n",
+            "o",
+            "p",
+            "q",
+            "r",
+            "s",
+            "t",
+            "u",
+            "v",
+            "w",
+            "x",
+            "y",
+            "z",  # 27
+            "_"  # 28, blank
+        )  # TODO check that _ 28 doesn't mess up training. It's needed for ctcdecode
+        # TODO make char_map_str better
+
+
 class TextTransform:
     """Maps characters to integers and vice versa"""
+
     def __init__(self):
-        char_map_str = """
-        ' 0
-        <SPACE> 1
-        a 2
-        b 3
-        c 4
-        d 5
-        e 6
-        f 7
-        g 8
-        h 9
-        i 10
-        j 11
-        k 12
-        l 13
-        m 14
-        n 15
-        o 16
-        p 17
-        q 18
-        r 19
-        s 20
-        t 21
-        u 22
-        v 23
-        w 24
-        x 25
-        y 26
-        z 27
-        """
-        self.char_map = {}
-        self.index_map = {}
-        for line in char_map_str.strip().split('\n'):
-            ch, index = line.split()
-            self.char_map[ch] = int(index)
-            self.index_map[int(index)] = ch
+        self.char_map = {ch: int(i) for i, ch in enumerate(char_map_str)}
+        self.index_map = {int(i): ch for i, ch in enumerate(char_map_str)}
+        # for line in char_map_str.strip().split('\n'):
+        #     ch, index = line.split()
+        #     self.char_map[ch] = int(index)
+        #     self.index_map[int(index)] = ch
         self.index_map[1] = ' '
 
     def text_to_int(self, text):
@@ -81,7 +86,8 @@ def data_processing(data, audio_transforms, text_transform):
     return spectrograms, labels, input_lengths, label_lengths
 
 
-def GreedyDecoder(output, labels, label_lengths, text_transform, blank_label=28, collapse_repeated=True):
+def greedy_decoder(output, labels, label_lengths, text_transform, blank_label=28, collapse_repeated=True):
+    """not used in code"""
     arg_maxes = torch.argmax(output, dim=2)
     decodes = []
     targets = []
